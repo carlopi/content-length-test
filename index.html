@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Test content-length</title>
+  </head>
+  <body>
+    <main>
+        <h1>Welcome to test website</h1>
+	<h4>Problem: How to get the length of a remote file from a HEAD request? (from within a web browser)</h4>
+	<h4>On most file types, it seems any method works</h4>
+	<h4>On 'text/plain', it seems not to be possible on Firefox (while there are workarounds if using range requests on other browsers</h4>
+	<div id='content'>
+	</div>
+    </main>
+	<script>
+		function getDIV(url) {
+			var x = document.getElementById(url);
+			if (!x) {
+				x = document.createElement('div');
+				document.getElementById('content').appendChild(x);
+				x.textContent = url;
+				x.id = url;
+			}
+			return x;
+		}
+		function printLine(url, mode, res) {
+			var p = document.createElement('p');
+			p.textContent = res + " using " + mode;
+			getDIV(url).appendChild(p);	
+		}
+		function processURLinner(url, doRange, method) {
+			var xhr = new XMLHttpRequest();
+			xhr.open(method, url, true);
+			xhr.responseType='arraybuffer';
+			xhr.overrideMimeType('x');
+			if (doRange)
+				xhr.setRequestHeader('Range', `bytes=0-`);
+			xhr.onload = () => {
+				printLine(url, method + (doRange?" + RANGE":""), xhr.getResponseHeader('Content-Length'));
+				var actualLen = xhr.response.byteLength;
+				if (actualLen)
+					printLine(url, "GET's arraybuffer's byteLength" + (doRange?" providing RANGE":""), actualLen);
+			};
+			xhr.send(null);
+		}
+		function processURL(url) {
+			processURLinner(url, 0, 'HEAD');
+			processURLinner(url, 1, 'HEAD');
+			processURLinner(url, 0, 'GET');
+			processURLinner(url, 1, 'GET');
+		}
+		processURL("https://raw.githubusercontent.com/duckdb/duckdb_spatial/main/test/data/nyc_taxi/taxi_zones/taxi_zones.prj");
+		processURL("https://raw.githubusercontent.com/duckdb/duckdb_spatial/main/test/data/nyc_taxi/taxi_zones/taxi_zones.shp");
+		processURL("https://raw.githubusercontent.com/duckdb/duckdb_spatial/main/test/data/nyc_taxi/taxi_zones/taxi_zones.shx");
+	</script>
+  </body>
+</html>
